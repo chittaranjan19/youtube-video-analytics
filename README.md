@@ -27,12 +27,12 @@ We will select a sample of videos (n to be determined based on rate-limiting of 
 
 We look to utilize the following tools:
 
-Visualization tools for EDA: Boxplots, Histograms, Pair Plot, etc
-Clustering techniques as a form of EDA to look for similarity patterns across videos
-LDA, QDA, and logistic regression for classification and interpretation
-Random Forest and AdaBoost for feature selection and variable importance
-Test set for comparing the performance of the methods
-Cross-Validation for finding the optimal varying parameters, if it’s not too computationally expensive
-Text Processing tools for usage of analysis of textual data like title, description, etc
-Whether Splines and GAM are used will be based on the results obtained above
+* Visualization tools for EDA: Boxplots, Histograms, Pair Plot, etc
+* Clustering techniques as a form of EDA to look for similarity patterns across videos
+* LDA, QDA, and logistic regression for classification and interpretation
+* Random Forest and AdaBoost for feature selection and variable importance
+* Test set for comparing the performance of the methods
+* Cross-Validation for finding the optimal varying parameters, if it’s not too computationally expensive
+* Text Processing tools for usage of analysis of textual data like title, description, etc
+* Whether Splines and GAM are used will be based on the results obtained above
 
