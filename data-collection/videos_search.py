@@ -14,13 +14,12 @@ def build_requests(youtube):
 
     # https://www.googleapis.com/youtube/v3/videoCategories
     # Music: 10
+    # Comedy: 23
     # Entertainment: 24
     # News/Politics: 25
     # Education: 27
     # Science/Tech: 28
-    # Comedy: 34
-    # TODO: replace Comedy category with something equivalent, as there seem to be no results
-    categories = [10, 24, 25, 27, 28, 34]
+    categories = [10, 23, 24, 25, 27, 28]
     for when in time_periods:
         for category in categories:
             request = youtube.search().list(
@@ -47,14 +46,15 @@ def main(youtube):
         for category in requests[when]:
             print("Fetching", when, category)
             try:
-                response = requests[when][category][0].execute() # inner list always has exactly one element for now
-                save_response(when, str(category), response)
-                print("Fetched", when, category)
-                time.sleep(1)
+                if not os.path.exists(os.path.join(when, str(category), "ids")):
+                    response = requests[when][category][0].execute() # inner list always has exactly one element for now
+                    save_response(when, str(category), response)
+                    print("Fetched", when, category)
+                    time.sleep(1)
             except Exception as e:
                 print(e)
     
 if __name__ == "__main__":
-    API_KEY = open(".apikey").read().strip()
+    API_KEY = open("apikey").read().strip()
     youtube = googleapiclient.discovery.build("youtube", "v3", developerKey = API_KEY)
     main(youtube)

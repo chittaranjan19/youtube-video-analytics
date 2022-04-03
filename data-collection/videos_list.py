@@ -22,7 +22,7 @@ PARTS = [
 def get_ids():
     all_ids = defaultdict(lambda: defaultdict(lambda: []))
     time_periods = ["before", "during", "after"]
-    categories = [10, 24, 25, 27, 28, 34]
+    categories = [10, 23, 24, 25, 27, 28]
     for when in time_periods:
         for category in categories:
             ids = open(os.path.join(when, str(category), "ids")).read()
@@ -40,10 +40,6 @@ def build_requests(youtube):
             video_ids = all_ids[when][category]
             if video_ids:   # ensure no requests are made without videoIds
                 ids = ",".join(video_ids)
-                # print(video_ids)
-                # print(len(video_ids))
-                # print(ids)
-                # print(ids.count(","))
                 request = youtube.videos().list(
                     part=",".join(PARTS),
                     id=ids
@@ -55,7 +51,7 @@ def save_response(when, category, response):
     path = Path(os.path.join(when, category))
     path.mkdir(exist_ok=True, parents=True)
     filename = os.path.join(when, category, "videoInfo")
-    pprint(response, stream=open(filename, "w"))
+    print(json.dumps(response, indent=4), file=open(filename, "w"))
 
 def main(youtube):
     requests = build_requests(youtube)
@@ -71,6 +67,6 @@ def main(youtube):
                 print(e)
     
 if __name__ == "__main__":
-    API_KEY = open(".apikey").read().strip()
+    API_KEY = open("apikey").read().strip()
     youtube = googleapiclient.discovery.build("youtube", "v3", developerKey = API_KEY)
     main(youtube)
