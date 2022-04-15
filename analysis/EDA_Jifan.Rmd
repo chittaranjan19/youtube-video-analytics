@@ -1,0 +1,237 @@
+---
+title: "503pro"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## EDA
+
+## data cleaning
+
+```{r}
+library(tidyverse)
+library(ggpubr)
+dat=read.csv(file = 'data.csv',encoding="UTF-8")
+head(dat)
+summary(dat)
+str(dat)
+dat$category=as.factor(dat$category)
+dat$timePeriod=as.factor(dat$timePeriod)
+dat$definition=as.factor(dat$definition)
+dat$caption=as.factor(dat$caption)
+dat$madeForKids=as.factor(dat$madeForKids)
+dat$views=as.numeric(dat$views)
+dat$likes=as.numeric(dat$likes)
+dat$comments=as.numeric(dat$comments)
+summary(dat)
+time1 = strptime(dat$duration,'PT%MM%SS')
+index=which(is.na(time1))
+dat$duration[index]
+time2 <- strptime(dat$duration,'PT%HH%MM%SS')
+time3 <- strptime(dat$duration,'PT%MM')
+time4 <- strptime(dat$duration,'PT%SS')
+time5 <- strptime(dat$duration,'PT%HH%SS')
+
+time=time1
+time[index]=time2[index]
+index=which(is.na(time))
+time[index]=time3[index]
+index=which(is.na(time))
+time[index]=time4[index]
+index=which(is.na(time))
+time[index]=time5[index]
+dat$duration=time
+
+dat$duration=difftime(dat$duration,Sys.Date(),units='secs')-14400
+
+for (i in 1:ncol(dat)) {
+  print(which(is.na(dat[,i])))
+}
+
+dat=na.omit(dat)
+```
+
+
+category, timePeriod, definition, caption, madeForKids are categorical variables, duration, views, likes, comments, are numerical.
+
+
+
+
+
+```{r}
+boxduration = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = category, y = duration)) +
+    labs(x = 'category', y = 'duration')
+boxviews = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = category, y = views)) +
+    labs(x = 'category', y = 'views')
+boxlikes = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = category, y = likes)) +
+    labs(x = 'category', y = 'likes')
+boxcomments = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = category, y = comments)) +
+    labs(x = 'category', y = 'comments')
+
+
+ggarrange(boxduration, boxviews, boxlikes, boxcomments, ncol=2, common.legend=T, legend="bottom")
+
+```
+
+
+```{r}
+boxduration = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = timePeriod, y = duration)) +
+    labs(x = 'timePeriod', y = 'duration')
+boxviews = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = timePeriod, y = views)) +
+    labs(x = 'timePeriod', y = 'views')
+boxlikes = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = timePeriod, y = likes)) +
+    labs(x = 'timePeriod', y = 'likes')
+boxcomments = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = timePeriod, y = comments)) +
+    labs(x = 'timePeriod', y = 'comments')
+
+
+ggarrange(boxduration, boxviews, boxlikes, boxcomments, ncol=2, common.legend=T, legend="bottom")
+
+```
+
+
+
+```{r}
+boxduration = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = definition, y = duration)) +
+    labs(x = 'definition', y = 'duration')
+boxviews = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = definition, y = views)) +
+    labs(x = 'definition', y = 'views')
+boxlikes = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = definition, y = likes)) +
+    labs(x = 'definition', y = 'likes')
+boxcomments = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = definition, y = comments)) +
+    labs(x = 'definition', y = 'comments')
+
+
+ggarrange(boxduration, boxviews, boxlikes, boxcomments, ncol=4, common.legend=T, legend="bottom")
+
+```
+
+
+
+```{r}
+boxduration = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = caption, y = duration)) +
+    labs(x = 'caption', y = 'duration')
+boxviews = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = caption, y = views)) +
+    labs(x = 'caption', y = 'views')
+boxlikes = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = caption, y = likes)) +
+    labs(x = 'caption', y = 'likes')
+boxcomments = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = caption, y = comments)) +
+    labs(x = 'caption', y = 'comments')
+
+
+ggarrange(boxduration, boxviews, boxlikes, boxcomments, ncol=4, common.legend=T, legend="bottom")
+
+```
+
+
+
+
+```{r}
+boxduration = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = madeForKids, y = duration)) +
+    labs(x = 'madeForKids', y = 'duration')
+boxviews = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = madeForKids, y = views)) +
+    labs(x = 'madeForKids', y = 'views')
+boxlikes = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = madeForKids, y = likes)) +
+    labs(x = 'madeForKids', y = 'likes')
+boxcomments = ggplot(data = dat) + 
+    geom_boxplot(mapping = aes(x = madeForKids, y = comments)) +
+    labs(x = 'madeForKids', y = 'comments')
+
+
+ggarrange(boxduration, boxviews, boxlikes, boxcomments, ncol=4, common.legend=T, legend="bottom")
+
+```
+
+
+
+
+```{r}
+library(GGally)
+dat1=dat
+dat1$duration=as.numeric(dat1$duration)
+ggpairs(data = dat1, columns = c(6,10,11,12),mapping=aes(color=category))
+
+
+ggpairs(data = dat1, columns = c(6,10,11,12),mapping=aes(color=timePeriod))
+
+ggpairs(data = dat1, columns = c(6,10,11,12),mapping=aes(color=definition))
+
+ggpairs(data = dat1, columns = c(6,10,11,12),mapping=aes(color=caption))
+
+ggpairs(data = dat1, columns = c(6,10,11,12),mapping=aes(color=madeForKids))
+
+```
+
+```{r}
+hist(x=dat1$duration)
+hist(x=dat1$likes)
+hist(x=dat1$views)
+hist(x=dat1$comments)
+```
+
+
+
+```{r}
+library(ggmosaic)
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(category, timePeriod), fill = category)) +    labs(y="category", x="timePeriod")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(category, definition), fill = category)) +    labs(y="category", x="definition")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(category, caption), fill = category)) +    labs(y="category", x="caption")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(category, madeForKids), fill = category)) +    labs(y="category", x="madeForKids")
+
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(timePeriod, definition), fill = timePeriod)) +    labs(y="timePeriod", x="definition")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(timePeriod, caption), fill = timePeriod)) +    labs(y="timePeriod", x="caption")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(timePeriod, madeForKids), fill = timePeriod)) +    labs(y="timePeriod", x="madeForKids")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(definition, caption), fill = definition)) +    labs(y="definition", x="caption")
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(definition, madeForKids), fill = definition)) +    labs(y="definition", x="madeForKids")
+
+
+ggplot(data = dat) +
+  geom_mosaic(aes(x = product(caption, madeForKids), fill = caption)) +    labs(y="caption", x="madeForKids")
+```
+
+
+
+
+```{r}
+
+```
+
