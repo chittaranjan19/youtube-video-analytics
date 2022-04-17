@@ -400,14 +400,42 @@ table(test.pred, test$viewsQuartile3)
 
 
 set.seed(2)
+test_err = rep(0,27)
+dim(test_err)=c(3,3,3)
 
-rf1=randomForest(viewsQuartile3 ~ category+ timePeriod+ definition+ caption+ madeForKids+ + duration+age, data = train, mtry=3, ntree=1000, nodesize = 1)
-rf1
+# m is mtry, n is ntree, o is nodesize
+for (m in 3:5) {
+  for (n in c(1000,2000,3000)) {
+    for (o in 1:3) {
+      rf=randomForest(viewsQuartile3 ~ category+ timePeriod+ definition+ caption+ madeForKids+ + duration+age, data = train, mtry=m, ntree=n, nodesize = o)
 
-bag_test_pred1 <- predict(rf1, newdata = test)
-bag_test_err1 <- mean(bag_test_pred1!=test$viewsQuartile3)
-bag_test_err1
-table(bag_test_pred1, test$viewsQuartile3)
-importance(rf1,type=2)
+test_pred <- predict(rf, newdata = test)
+err <- mean(test_pred!=test$viewsQuartile3)
+test_err[m-2,n/1000,o] = err
+}
+}
+}
+
+test_err
+## we can see [2,3,1] has the lowest error, which is m=4, n = 3000, o=1.
+
+rf=randomForest(viewsQuartile3 ~ category+ timePeriod+ definition+ caption+ madeForKids+ duration+age, data = train, mtry=4, ntree=3000, nodesize = 1)
+## we can see train error for each level in rf
+rf
+importance(rf,type=2)
+
+test_pred <- predict(rf, newdata = test)
+mean(test_pred!=test$viewsQuartile3)
+tabletest=table(test_pred, test$viewsQuartile3)
+
+cat("Test prediction error for low views:", 1-tabletest[1,1]/sum(tabletest[,1]))
+cat("Test prediction error for medium views:", 1-tabletest[2,2]/sum(tabletest[,2]))
+cat("Test prediction error for high views:", 1-tabletest[3,3]/sum(tabletest[,3]))
+
+
+
+
 ```
+
+
 
