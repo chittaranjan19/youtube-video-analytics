@@ -437,5 +437,12 @@ cat("Test prediction error for high views:", 1-tabletest[3,3]/sum(tabletest[,3])
 
 ```
 
+## neural network
+
+
+```{r}
+library(tensorflow)
+library(keras)
+```
 
 
