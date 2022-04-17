@@ -1,0 +1,300 @@
+---
+title: "add"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggpubr)
+library(GGally)
+library(rpart)
+library(rpart.plot)  
+library(rattle)
+library(randomForest)
+library(gbm)
+library(ggmosaic)
+library(patchwork)
+library(MASS)
+library(nnet)
+library(class)
+```
+
+
+
+```{r newdata}
+## use the data with age
+dat1=read.csv(file = 'datawithlevel9.csv',encoding="UTF-8")
+dat1$age=log(dat1$age)
+dat1$category=as.factor(dat1$category)
+dat1$timePeriod=as.factor(dat1$timePeriod)
+dat1$definition=as.factor(dat1$definition)
+dat1$caption=as.factor(dat1$caption)
+dat1$madeForKids=as.factor(dat1$madeForKids)
+dat1$viewsQuartile3=as.factor(dat1$viewsQuartile3)
+dat1$likesQuartile9=as.factor(dat1$likesQuartile9)
+dat1$commentsQuartile9=as.factor(dat1$commentsQuartile9)
+```
+
+
+```{r}
+set.seed(1)
+data <- dat1[, c(5,6,8:23)] %>% mutate(id=row_number())
+train <- data %>% group_by(viewsQuartile3) %>% sample_frac(0.8) %>% ungroup() 
+test <- anti_join(data, train, by = 'id')
+# remove the column id
+train <- dplyr::select(train, -id)
+test <- dplyr::select(test, -id)
+```
+
+## KNN
+
+
+```{r}
+
+train_ = train
+train_$category=as.numeric(train_$category)
+train_$timePeriod=as.numeric(train_$timePeriod)
+train_$duration=as.numeric(train_$duration)
+train_$definition=as.numeric(train_$definition)
+train_$caption=as.numeric(train_$caption)
+train_$madeForKids=as.numeric(train_$madeForKids)
+
+test_ = test
+test_$category=as.numeric(test_$category)
+test_$timePeriod=as.numeric(test_$timePeriod)
+test_$duration=as.numeric(test_$duration)
+test_$definition=as.numeric(test_$definition)
+test_$caption=as.numeric(test_$caption)
+test_$madeForKids=as.numeric(test_$madeForKids)
+
+trainViews_y = train_ %>% .$viewsQuartile3 
+trainViews_ylike = train_ %>% .$likesQuartile9 
+trainViews_ycomment = train_ %>% .$commentsQuartile9 
+
+trainViews_x <- train_ %>% dplyr::select('category', 'timePeriod', 'duration', 'definition', 'caption', 'madeForKids','age')
+
+testViews_y = test_ %>% .$viewsQuartile3 
+
+testViews_ylike = test_ %>% .$likesQuartile9 
+testViews_ycomment = test_ %>% .$commentsQuartile9 
+
+testViews_x = test_ %>% dplyr::select('category', 'timePeriod', "duration", "definition", "caption", "madeForKids",'age')
+mean_train = colMeans(trainViews_x)
+std_train = sqrt(diag(var(trainViews_x)))
+# training data
+trainViews_x = scale(trainViews_x, center = mean_train, scale = std_train)
+# test data
+testViews_x = scale(testViews_x, center = mean_train, scale = std_train)
+
+# We can see when k>50, the error is increasing, so we don't need k>50
+k_range = 2:50
+
+
+train_error = c()
+test_error = c()
+for(i in 1:length(k_range)){
+  pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_y,
+                      k = k_range[i])
+  train_error[i] = mean(pred_train != trainViews_y)
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_y,
+                      k = k_range[i])
+  test_error[i] = mean(pred_test != testViews_y)
+}
+errors = data.frame(train_error, test_error, k_range)
+ggplot(errors, aes(x = 1/k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("1/K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+
+
+ggplot(errors, aes(x = k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+```
+
+## LOOCV and knn
+
+```{r}
+crossvalidated_error = numeric(49)
+for(i in 2:50){
+K<-knn.cv(trainViews_x, cl=trainViews_y, k=i)
+crossvalidated_error[i-1] = mean(trainViews_y!=K)
+}
+
+plot(crossvalidated_error, ty="l", lwd=2, col="blue", xlab="K", ylab ="LOOCV error")
+
+a=which(crossvalidated_error==min(crossvalidated_error))
+
+pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_y,
+                      k = k_range[a])
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_y,
+                      k = k_range[a])
+
+tabletrain=table(predicted=pred_train, actual=train$viewsQuartile3)
+cat("train prediction error:", mean(pred_train!=train$viewsQuartile3))
+cat("train prediction error for low views:", 1-tabletrain[1,1]/sum(tabletrain[,1]))
+cat("train prediction error for medium views:", 1-tabletrain[2,2]/sum(tabletrain[,2]))
+cat("train prediction error for high views:", 1-tabletrain[3,3]/sum(tabletrain[,3]))
+
+
+tabletest=table(predicted=pred_test, actual=test$viewsQuartile3)
+cat("test prediction error:", mean(pred_test!=test$viewsQuartile3))
+cat("Test prediction error for low views:", 1-tabletest[1,1]/sum(tabletest[,1]))
+cat("Test prediction error for medium views:", 1-tabletest[2,2]/sum(tabletest[,2]))
+cat("Test prediction error for high views:", 1-tabletest[3,3]/sum(tabletest[,3]))
+```
+
+## knn with 9 levels likes
+
+```{r}
+
+for(i in 1:length(k_range)){
+  pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_ylike,
+                      k = k_range[i])
+  train_error[i] = mean(pred_train != trainViews_ylike)
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_ylike,
+                      k = k_range[i])
+  test_error[i] = mean(pred_test != testViews_ylike)
+}
+errors = data.frame(train_error, test_error, k_range)
+ggplot(errors, aes(x = 1/k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("1/K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+
+
+ggplot(errors, aes(x = k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+```
+
+
+
+## LOOCV and knn likes
+
+```{r}
+crossvalidated_error = numeric(49)
+for(i in 2:50){
+K<-knn.cv(trainViews_x, cl=trainViews_ylike, k=i)
+crossvalidated_error[i-1] = mean(trainViews_ylike!=K)
+}
+
+plot(crossvalidated_error, ty="l", lwd=2, col="blue", xlab="K", ylab ="LOOCV error")
+
+which(crossvalidated_error==min(crossvalidated_error))
+
+a=which(crossvalidated_error==min(crossvalidated_error))
+
+pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_ylike,
+                      k = k_range[a])
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_ylike,
+                      k = k_range[a])
+
+tabletrain=table(predicted=pred_train, actual=train$likesQuartile3)
+cat("train prediction error:", mean(pred_train!=train$likesQuartile3))
+
+
+tabletest=table(predicted=pred_test, actual=test$likesQuartile3)
+cat("test prediction error:", mean(pred_test!=test$likesQuartile3))
+
+```
+
+
+## knn with 9 levels comments
+
+```{r}
+
+for(i in 1:length(k_range)){
+  pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_ycomment,
+                      k = k_range[i])
+  train_error[i] = mean(pred_train != trainViews_ycomment)
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_ycomment,
+                      k = k_range[i])
+  test_error[i] = mean(pred_test != testViews_ycomment)
+}
+errors = data.frame(train_error, test_error, k_range)
+ggplot(errors, aes(x = 1/k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("1/K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+
+
+ggplot(errors, aes(x = k_range)) + 
+  geom_line(aes(y = train_error, col = "train error"), size=1) + geom_point(aes(y = train_error, col = "train error")) +
+  geom_line(aes(y = test_error, col = "test error")) + geom_point(aes(y = test_error, col = "test error")) +
+  ylab("Error Rate") + xlab("K") + ggtitle("Training and test error rate for KNN") + theme_minimal() +
+  scale_color_manual(values = c("train error" = "red", "test error" = "blue"))
+```
+
+
+
+## LOOCV and knn comments
+
+```{r}
+crossvalidated_error = numeric(49)
+for(i in 2:50){
+K<-knn.cv(trainViews_x, cl=trainViews_ycomment, k=i)
+crossvalidated_error[i-1] = mean(trainViews_ycomment!=K)
+}
+
+plot(crossvalidated_error, ty="l", lwd=2, col="blue", xlab="K", ylab ="LOOCV error")
+
+which(crossvalidated_error==min(crossvalidated_error))
+
+a=which(crossvalidated_error==min(crossvalidated_error))
+
+pred_train <- knn(trainViews_x, 
+                      trainViews_x, 
+                      trainViews_ycomment,
+                      k = k_range[a])
+  pred_test = knn(trainViews_x, 
+                      testViews_x, 
+                      trainViews_ycomment,
+                      k = k_range[a])
+
+tabletrain=table(predicted=pred_train, actual=train$commentsQuartile3)
+cat("train prediction error:", mean(pred_train!=train$commentsQuartile3))
+
+
+tabletest=table(predicted=pred_test, actual=test$commentsQuartile3)
+cat("test prediction error:", mean(pred_test!=test$commentsQuartile3))
+
+```
+
+
+
+
+
+
