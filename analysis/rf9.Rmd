@@ -1,0 +1,74 @@
+---
+title: "rf9"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggpubr)
+library(GGally)
+library(rpart)
+library(rpart.plot)  
+library(rattle)
+library(randomForest)
+library(gbm)
+library(ggmosaic)
+library(patchwork)
+library(MASS)
+library(nnet)
+library(class)
+```
+
+
+
+```{r newdata}
+## use the data with age
+dat1=read.csv(file = 'datawithlevel9.csv',encoding="UTF-8")
+dat1$age=log(dat1$age)
+dat1$category=as.factor(dat1$category)
+dat1$timePeriod=as.factor(dat1$timePeriod)
+dat1$definition=as.factor(dat1$definition)
+dat1$caption=as.factor(dat1$caption)
+dat1$madeForKids=as.factor(dat1$madeForKids)
+dat1$viewsQuartile3=as.factor(dat1$viewsQuartile3)
+dat1$likesQuartile9=as.factor(dat1$likesQuartile9)
+dat1$commentsQuartile9=as.factor(dat1$commentsQuartile9)
+```
+
+
+```{r}
+set.seed(1)
+data <- dat1[, c(5,6,8:23)] %>% mutate(id=row_number())
+train <- data %>% group_by(viewsQuartile3) %>% sample_frac(0.8) %>% ungroup() 
+test <- anti_join(data, train, by = 'id')
+# remove the column id
+train <- dplyr::select(train, -id)
+test <- dplyr::select(test, -id)
+```
+
+
+```{r}
+rf=randomForest(likesQuartile9 ~ category+ timePeriod+ definition+ caption+ madeForKids+ duration+age, data = train, mtry=4, ntree=3000, nodesize = 1)
+## we can see train error for each level in rf
+rf
+importance(rf,type=2)
+
+test_pred <- predict(rf, newdata = test)
+mean(test_pred!=test$likesQuartile9)
+
+
+
+rf=randomForest(commentsQuartile9 ~ category+ timePeriod+ definition+ caption+ madeForKids+ duration+age, data = train, mtry=4, ntree=3000, nodesize = 1)
+## we can see train error for each level in rf
+rf
+importance(rf,type=2)
+
+test_pred <- predict(rf, newdata = test)
+mean(test_pred!=test$commentsQuartile9)
+
+```
+
